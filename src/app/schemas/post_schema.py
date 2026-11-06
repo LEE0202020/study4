@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from datetime import datetime
-from app.schemas.member_schema import MemberSummeryDTO
-
+from app.schemas.member_schema import MemberSummaryDTO
 
 # VO
 class PostVO(BaseModel):
@@ -9,45 +8,45 @@ class PostVO(BaseModel):
     post_title: str
     post_content: str
     post_read_count: int
-    post_updated_at: datetime | None = None #수정일
+    post_updated_at: datetime | None = None
     post_created_at: datetime | None = None
-    member_id: int
+    member_id: int 
 
 # DTO
 class PostCreateDTO(BaseModel):
     post_title: str
     post_content: str
 
-    class Config: 
+    class Config:
         from_attributes = True
 
-
 # DTO
-class PostDatailResponseDTO(BaseModel):
+class PostDetailResponseDTO(BaseModel):
     id: int
     post_title: str
     post_content: str
     post_read_count: int
-    post_updated_at: datetime | None = None 
+    post_updated_at: datetime | None = None
     post_created_at: datetime | None = None
 
-    member: MemberSummeryDTO
+    member: MemberSummaryDTO
 
-
-    class Config: 
+    class Config:
         from_attributes = True
 
-
-# DTO
-class PostListReaponseDTO(BaseModel):
+class PostListResponseDTO(BaseModel):
     id: int
     post_title: str
     post_read_count: int
-    post_updated_at: datetime | None = None 
+    post_updated_at: datetime | None = None
     post_created_at: datetime | None = None
 
-    member: MemberSummeryDTO
+    member: MemberSummaryDTO
 
-
-    class Config: 
+    class Config:
         from_attributes = True
+
+# 회원 수정 
+class PostUpdateDTO(BaseModel):
+    post_title: str
+    post_content: str

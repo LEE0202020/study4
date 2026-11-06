@@ -1,20 +1,19 @@
 from fastapi import APIRouter, Query, Depends
 from app.services.post_service import get_post_service, PostService
 from app.schemas.common_schema import ApiResponseDTO
-from app.schemas.post_sahema import PostCreateDTO
+from app.schemas.post_schema import PostCreateDTO, PostUpdateDTO
 from app.enums.post_enum import PostSortEnum, PostSearchEnum
 
 from app.models.post_model import Post
 from app.infrastructure.postgresql import get_postgresql_db, AsyncSession
 import random
+
 router = APIRouter()
 
-router 
-
-# /posts , Post
+# /posts, POST
 @router.post(
     "",
-    summary="게시글작성",
+    summary="게시글 작성",
     response_model=ApiResponseDTO
 )
 async def write_post(
@@ -33,46 +32,87 @@ async def write_post(
     )
 
 
-@router.get (
-    "/{id}",
-    summary="게시글 조회(post_id)",
-    response_model=ApiResponseDTO
-)
-async def read_post(
-    post_id:int,
-    post_service = Depends(get_post_service)
-):
-    found_post = await post_service.read_post(post_id)
-    return ApiResponseDTO(
-        success=True,
-        message=f"{post_id}게시글 조회 성공",
-        data=found_post
-    )
 
-
-# 게시글 전체 조회 (페이지네이셩  + 정렬 + 검색)
+# 게시글 전체 조회(페이지네이션 + 정렬 + 검색)
 @router.get(
     "/search",
-    summary="게시판 전체 조회",
+    summary="게시판 전체 조회(검색)",
     response_model=ApiResponseDTO
 )
-# 쿼리스트링 : query string
-async def get_post(
-    offset:int = Query(0, ge=0, description="시작 오프셋"), 
-    limit: int = Query(10, ge=1, le=100, description="가져올 개수"), 
-    sort_by:PostSortEnum = Query(
-        PostSortEnum.LATEST.value,
-        description="정렬 기준 (LATEST, OLDEST, VIEWS)"
+async def search_posts(
+    offset: int = Query(0, ge=0, description="시작 오프셋"),
+    limit: int = Query(10, ge=1, le=100, description="가져올 개수"),
+    sort_by: PostSortEnum = Query(
+        PostSortEnum.LATEST.value, 
+        description="정렬 기준(LATEST, OLDEST, VIEWS)"
     ),
+    search_keyword: PostSearchEnum = Query(
+        PostSearchEnum.TITLE,
+        description="검색 기준(TITLE, CONTENT, WRITER, TITLE_CONTENT)"
+    ),
+    keyword: str | None = Query(None, description="검색할 키워드"),
     post_service: PostService = Depends(get_post_service)
 ):
-    paged_posts = await post_service.read_posts_by_paging(offset, limit, sort_by)
 
-    return  ApiResponseDTO(
+    paged_posts = await post_service.search_posts_by_paging(
+        offset, 
+        limit, 
+        sort_by, 
+        search_keyword, 
+        keyword
+    ) 
+
+    return ApiResponseDTO(
         success=True,
         message="전체 게시글 조회 성공",
         data=paged_posts
     )
+
+
+@router.get(
+    "/{post_id}",
+    summary="게시글 조회(post_id)",
+    response_model=ApiResponseDTO
+)
+async def read_post(
+    post_id: int,
+    post_service: PostService = Depends(get_post_service)
+):
+    found_post = await post_service.read_post(post_id)
+
+    return ApiResponseDTO(
+        success=True,
+        message=f"{post_id}번 게시글 조회 성공",
+        data=found_post
+    )
+
+
+# 게시글 전체 조회(페이지네이션 + 정렬)
+@router.get(
+    "",
+    summary="게시판 전체 조회",
+    response_model=ApiResponseDTO
+)
+async def get_posts(
+    offset: int = Query(0, ge=0, description="시작 오프셋"),
+    limit: int = Query(10, ge=1, le=100, description="가져올 개수"),
+    sort_by: PostSortEnum = Query(
+        PostSortEnum.LATEST.value, 
+        description="정렬 기준(LATEST, OLDEST, VIEWS)"
+    ),
+    post_service: PostService = Depends(get_post_service)
+):
+    paged_posts = await post_service.read_posts_by_paging(offset, limit, sort_by)
+    
+    return ApiResponseDTO(
+        success=True,
+        message="전체 게시글 조회 성공",
+        data=paged_posts
+    )
+
+
+
+
 
 
 
@@ -114,3 +154,40 @@ async def get_dummies(
     return {
         "message": "더미데이터 추가 성공!"
     }
+
+
+# 수정 
+@router.put(
+    "/{id}",
+    summary="회원 정보 수정",
+    response_model=ApiResponseDTO
+)
+async def edit_post(
+    id: int, 
+    post: PostUpdateDTO,
+    post_service: PostService = Depends(get_post_service)
+):
+    updated_post_id = await post_service.update_post(id, Post)
+
+    return ApiResponseDTO(
+        success=True,
+        message="회원 정보 수정 완료",
+        data= updated_post_id
+    )
+
+
+@router.default(
+    "/{id}", 
+    summary="게시글 삭제",
+    response_model=ApiResponseDTO
+)
+async def remove_post(
+    id: int,
+    post_service : PostService = Depends(get_post_service)
+):
+    await post_service.remove_post(id)
+
+    return ApiResponseDTO(
+        success=True, 
+        message="게시글 삭제 완료"
+    )

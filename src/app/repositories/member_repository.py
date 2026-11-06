@@ -125,17 +125,18 @@ class MemberRepository:
 
     # 7. 회원 정보 수정
     async def update_member(self, id: int, update_data: dict) -> Member | None:
+        # 수정할 값이 비어 있으면 DB 쿼리를 실행하지 않고 바로 종료
         if not update_data:
             return None
 
         query = (
-            update(Member)
-            .where(Member.id == id)
-            .values(**update_data)
-            .returning(Member)
+            update(Member)           # Member 테이블을 수정하겠다는 뜻
+            .where(Member.id == id)  # 전달받은 id와 같은 행만 대상으로 함  
+            .values(**update_data)   # 딕셔너리를 수정 값으로 펼침
+            .returning(Member)       # 수정된 행 전체를 반환하도록 요청
         )
 
-        result = await self.db.execute(query)
+        result = await self.db.execute(query)   # result에는 DB 실행 결과가 들어있음 
         await self.db.commit()
 
         updated_member = result.scalar_one_or_none()
@@ -155,6 +156,6 @@ class MemberRepository:
 
 
 
-# 주입 팩토리 메서드     ⭐️ Depends
+# 주입 팩토리 메서드     ⭐️Depends
 def get_member_repository(db: AsyncSession = Depends(get_postgresql_db)):
     return MemberRepository(db)

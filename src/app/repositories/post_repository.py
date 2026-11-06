@@ -5,7 +5,7 @@ from sqlalchemy import insert, select, update, delete, func, exists, desc, asc, 
 from sqlalchemy.orm import joinedload
 
 from app.models.post_model import Post
-from app.schemas.member_model import
+from app.models.member_model import Member
 from app.schemas.post_schema import PostCreateDTO
 from app.enums.post_enum import PostSortEnum, PostSearchEnum
 
@@ -84,9 +84,8 @@ class PostRepository:
         return result.scalar_one()
     
 
-
-     # 게시글 검색(제목, 내용, 작성자, 제목+내용)
-    def search_posts(
+    # 게시글 검색(제목, 내용, 작성자, 제목+내용)
+    async def search_posts(
         self,
         offset: int,
         limit: int,
@@ -95,53 +94,97 @@ class PostRepository:
         keyword: str | None = None # 사용자 검색어 "ABC"
     ):
 
-        # 검색  + 페이지네이션 베이스 쿼리
+        # 검색 + 페이지네이션 베이스 쿼리
         query = (
             select(Post).options(joinedload(Post.member))
         )
 
-        # 검색  + 페이지네이션 게시글 분리 
+        # 검색 + 페이지네이션 게시글의 개수 쿼리
         count_query = (
-            select(Post).options(joinedload(Post.member))
+            select(func.count()).select_from(Post)
         )
 
         if keyword and search_keyword:
-            keyword = f"%{search_keyword}%"
+            search_word = f"%{search_keyword}%"
+            condition = None
 
             if search_keyword == PostSearchEnum.TITLE:
-                condition = Post.post_title.like(keyword)
+                condition = Post.post_title.like(search_word)
+
             elif search_keyword == PostSearchEnum.CONTENT:
-                condition = Post.post_content.like(keyword)
+                condition = Post.post_content.like(search_word)
+
             elif search_keyword == PostSearchEnum.WRITER:
-                pass 
+                query = query.join(Post.member)
+                count_query = count_query.join(Post.member)
+                condition = Member.member_name.like(search_word)
+
             elif search_keyword == PostSearchEnum.TITLE_CONTENT:
                 condition = or_(
-                    Post.post_title.like(keyword),
-                    Post.post_content.like(keyword)
+                    Post.post_title.like(search_word),
+                    Post.post_content.like(search_word)
                 )
 
-            query = query.where(condition)
-
+            if condition is not None:
+                query = query.where(condition)
+                count_query = count_query.where(condition)
 
         if sort_by == PostSortEnum.OLDEST:
             query = query.order_by(asc(Post.id))
+
         elif sort_by == PostSortEnum.VIEWS:
             query = query.order_by(desc(Post.post_read_count), desc(Post.id))
+
         elif sort_by == PostSortEnum.LATEST:
             query = query.order_by(desc(Post.id))
 
         # 정렬된 상태에서 offset, limit
-        query = query.offset(offset).limit(limit)
+        query = query.offset(offset).limit(limit) 
+        result = await self.db.execute(query)
+        posts = list(result.scalars().all())
 
+        count_result = await self.db.execute(count_query)
+        total_count = count_result.scalar_one()
 
-
-
-
+        return posts, total_count
 
 
     # 게시글 수정
-    # 게시글 삭제
+    async def update_post(self, post_id: int, update_data: dict) :
+            # if not update_data:
+            #     return None
+    
+            query = (
+                update(Post)
+                .values(
+                    **update_data,
+                    post_updated_at=func.now()
+                )
+      
+                .where(Post.id == post_id)
+                .returning(Post.id)
+            )
+    
+            result = await self.db.execute(query)
+            await self.db.commit()
+    
+            updated_post_id = result.scalar_one()
+            return updated_post_id                  # 업데이트 하고 다시 조회
 
+            
+    
+
+
+    # 게시글 삭제
+    async def delete_post(self, post_id: int) -> bool:
+            query = (
+                delete(Post)
+                    .where(Post.id == post_id)
+            )
+            result = await self.db.execute(query)
+            await self.db.commit()
+            return result.rowcount > 0
+    
 
 
 
