@@ -67,7 +67,7 @@ class MemberUpdateDTO(BaseModel):
         from_attributes = True
 
 
-class MemberSummeryDTO(BaseModel):
+class MemberSummaryDTO(BaseModel):
     id:int
     member_email: str | None = None
     member_name: str | None = None

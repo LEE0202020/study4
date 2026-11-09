@@ -6,7 +6,8 @@ class PostSortEnum(str, Enum):
     
 class PostSearchEnum(str, Enum):
     TITLE = "TITLE" #젬ㄱ
-    CONTENT = CONTENT
-    TITLE_CONTENT = TITLE_CONTENT
+    CONTENT = "CONTENT"
+    WRITER = "WRITER"
+    TITLE_CONTENT = "TITLE_CONTENT"
 
     

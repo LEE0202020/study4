@@ -167,7 +167,7 @@ async def edit_post(
     post: PostUpdateDTO,
     post_service: PostService = Depends(get_post_service)
 ):
-    updated_post_id = await post_service.update_post(id, Post)
+    updated_post_id = await post_service.edit_post(id, post)
 
     return ApiResponseDTO(
         success=True,
@@ -176,7 +176,7 @@ async def edit_post(
     )
 
 
-@router.default(
+@router.delete(
     "/{id}", 
     summary="게시글 삭제",
     response_model=ApiResponseDTO

@@ -105,7 +105,7 @@ class PostRepository:
         )
 
         if keyword and search_keyword:
-            search_word = f"%{search_keyword}%"
+            search_word = f"{keyword}"
             condition = None
 
             if search_keyword == PostSearchEnum.TITLE:
