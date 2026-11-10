@@ -23,7 +23,7 @@ async def check_member(
 
 
 @router.post("/join",
-    summary="로컬 회원 가입",
+    summary="회원 가입",
     response_model=ApiResponseDTO,
     responses={
         409: {
@@ -42,9 +42,9 @@ async def join(
     member: MemberCreateDTO, 
     member_service: MemberService = Depends(get_member_service)
 ):
-    pass
-    # provider는 controller 담당
-    member.member_provider = MemberProvider.LOCAL.value
+    if not member.member_provider:
+        member.member_provider = MemberProvider.LOCAL.value
+
     member_claim: MemberClaimDTO = await member_service.join(member)
 
     return ApiResponseDTO(
@@ -91,18 +91,17 @@ async def get_member_by_email_and_provider(
 
 
 # "": "/members"
-@router.get(
-    "",
-    summary="회원 전체 정보 조회(테스트)",
-    response_model=ApiResponseDTO
-)
-async def get_members(member_service: MemberService = Depends(get_member_service)):
-    return ApiResponseDTO(
-        success=True,
-        message="회원 전체 조회 성공",
-        data=await member_service.get_members()
-    )
-
+# @router.get(
+#     "",
+#     summary="회원 전체 정보 조회(테스트)",
+#     response_model=ApiResponseDTO
+# )
+# async def get_members(member_service: MemberService = Depends(get_member_service)):
+#     return ApiResponseDTO(
+#         success=True,
+#         message="회원 전체 조회 성공",
+#         data=await member_service.get_members()
+#     )
 
 @router.get(
     "",
@@ -110,18 +109,18 @@ async def get_members(member_service: MemberService = Depends(get_member_service
     response_model=ApiResponseDTO
 )
 async def get_members(
-    offset: int = Query(1, ge=1),       # ge : 최소, le: 최대  
-    limit: int = Query(1, ge=1, le=100),
+    offset: int = Query(1, ge=1),
+    limit: int = Query(10, ge=1, le=100),
     member_service: MemberService = Depends(get_member_service)
-):    
+):
     page_result = await member_service.get_members_paging(offset, limit)
-
+    
     return ApiResponseDTO(
-        success= True,
-        message= "회원 전체 조회 성공",
-
-
+        success=True,
+        message="회원 전체 조회 성공",
+        data=page_result
     )
+
 
 @router.put(
     "/{id}",
@@ -141,9 +140,10 @@ async def update_member(
         data=updated_member
     )
 
-@router.delete (
+
+@router.delete(
     "/{id}",
-    summary="회원탈퇴",
+    summary="회원 탈퇴",
     response_model=ApiResponseDTO
 )
 async def withdraw(id: int, member_service: MemberService = Depends(get_member_service)):
@@ -153,6 +153,7 @@ async def withdraw(id: int, member_service: MemberService = Depends(get_member_s
         success=True,
         message="회원 탈퇴 완료"
     )
+
 
 
 
